@@ -1,0 +1,450 @@
+openapi: 3.0.3
+info:
+  title: Marketplace Ads API
+  version: 1.1.0
+  description: API-спецификация для сервиса управления объявлениями в приложении маркетплейса.
+
+servers:
+  - url: https://marketplace.swagger.io/api/ads
+tags:
+  - name: Работа с объявлениями
+    description: Список эндпоинтов, позволяющих работать с объявлениями
+paths:
+
+  /ads:
+    post:
+      tags:
+        - Работа с объявлениями
+      security:
+      - BearerAuth: [] 
+      summary: Создать объявление
+      description: Создает объявление, присваивая ему статус "Prototype"
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: 8e03978e-40d5-43e8-bc93-6894a57f9324
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdCreate'
+      responses:
+        '202':
+          description: Объявление принято в обработку
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncOperationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+    get:
+      tags:
+        - Работа с объявлениями
+      security:
+      - BearerAuth: [] 
+      summary: Получить список объявлений
+      description: Возвращает список объявлений пользователя
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdTakeAll'
+
+  /ads/{idAd}:
+    get:
+      tags:
+        - Работа с объявлениями
+      security:
+      - BearerAuth: [] 
+      summary: Получить объявление по id
+      description: Возвращает выбраное по id обьявление
+      parameters:
+        - name: idAd
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdTake'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - Работа с объявлениями
+      security:
+      - BearerAuth: [] 
+      summary: Изменить объявление
+      description: Позволяет изменить объявление (Название, категорию,  описание, цена)
+      parameters:
+        - name: idAd
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: 8e03978e-40d5-43e8-bc93-6894a57f9324
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdUpdate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdTake'
+        '423':
+          $ref: '#/components/responses/Locked'
+
+    delete:
+      tags:
+        - Работа с объявлениями
+      security:
+      - BearerAuth: [] 
+      summary: Удалить объявление
+      parameters:
+        - name: idAd
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Объявление принято в обработку
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncOperationResponse'
+        '204':
+          description: Удалено
+        '423':
+          $ref: '#/components/responses/Locked'
+
+  /operations/{operationId}:
+    get:
+      tags:
+        - Работа с объявлениями
+      security:
+      - BearerAuth: [] 
+      summary: Проверить статус задачи
+      description: Проверят статус задачи
+      parameters:
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: wait
+          in: query
+          description: Время ожидания в секундах
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 60
+            default: 30
+      responses:
+        '200':
+          description: Операция завершена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationCompleted'
+        '204':
+          description: Операция ещё не завершена
+        '408':
+          $ref: '#/components/responses/Timeout'
+
+  /moderation/ads/{idAd}/decision:
+    post:
+      tags:
+        - Работа с объявлениями
+      security:
+      - BearerAuth: [] 
+      summary: Решение модератора
+      description: Модератор принимает решение об подтверждении или отклонении обьявления пользователя
+      parameters:
+        - name: idAd
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: 8e03978e-40d5-43e8-bc93-6894a57f9324
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModerationDecision'
+      responses:
+        '200':
+          description: Выполнено
+
+components:
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AdCreate:
+      type: object
+      required: [userId, adCategory, adDescription, adName, adPrice]
+      properties:
+        userId:
+          type: string
+          format: uuid
+          example: "ce7f56fa-19d2-4432-a1f7-9ac8453fcd3b"
+        adName:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: "Анлийский язык"
+        adPrice:
+          type: number
+          minimum: 0
+          example: 1500
+        adCategory:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: Иностраные языки
+        adDescription:
+          type: string
+          minLength: 3
+          maxLength: 500
+          example: Курсы английского языка, начиная с уровня А1 и до уровня С2.
+
+    AdTake:
+      type: object
+      required: [idAd, userId, adCategory, adDescription, adName, adPrice, AdStatus, _links]
+      properties:
+        idAd:
+          type: string
+          format: uuid
+          example: "dhe64ks0-3t6s-5620-s6rn-23djr6y85wnf"
+        userId:
+          type: string
+          format: uuid
+          example: "ce7f56fa-19d2-4432-a1f7-9ac8453fcd3b"
+        userName:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: "Бобров Сергей Викторович"
+        userDescription:
+          type: string
+          minLength: 3
+          maxLength: 500
+          example: "Преподаю английский язык для школьников и студентов."
+        userRating:
+          type: number
+          minimum: 0.1
+          maximum: 5
+          example: 4.4
+        userPFP:
+          type: string
+          format: uri
+          example: https://cdn.example.com/users/ce7f56fa/avatar.jpg
+        adName:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: "Анлийский язык"
+        adPrice:
+          type: number
+          minimum: 0
+          example: 1500
+        adCategory:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: Иностраные языки
+        adDescription:
+          type: string
+          minLength: 3
+          maxLength: 500
+          example: Курсы английского языка, начиная с уровня А1 и до уровня С2.
+        status:
+          type: string
+          enum: [Prototype, Moderation, Publish, Cancel]
+        _links:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/HateoasLink'
+          example: 
+            - rel: self
+              method: GET
+              href: /api/v1/ads/dhe64ks0-3t6s-5620-s6rn-23djr6y85wnf
+              description: Получить объявление
+            - rel: update
+              method: PATCH
+              href: /api/v1/ads/dhe64ks0-3t6s-5620-s6rn-23djr6y85wnf
+              description: Изменить объявление
+            - rel: delete
+              method: DELETE
+              href: /api/v1/ads/dhe64ks0-3t6s-5620-s6rn-23djr6y85wnf
+              description: Удалить объявление
+        createdAt:
+          type: string
+          format: date-time
+          example: 2023-10-27 15:30:00
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2023-10-27 15:40:00
+
+    AdUpdate:
+      type: object
+      required: [adName, adPrice, adCategory, adDescription]
+      properties:
+        adName:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: "Анлийский язык"
+        adPrice:
+          type: number
+          minimum: 0
+          example: 1500
+        adCategory:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: Иностраные языки
+        adDescription:
+          type: string
+          minLength: 3
+          maxLength: 500
+          example: Курсы английского языка, начиная с уровня А1 и до уровня С2.
+
+    AdTakeAll:
+      type: object
+      required: [items, countOfReplys, maximumOfReplys, startFrom]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/AdTake'
+        countOfReplys:
+          type: number
+          example: 7
+        maximumOfReplys:
+          type: number
+          maximum: 15
+          example: 15
+        startFrom:
+          type: number
+          example: 2
+
+    OperationCompleted:
+      type: object
+      required: [operationId, operationStatus]
+      properties:
+       operationId:
+          type: string
+          format: uuid
+          example: "ce7f56fa-19d2-4432-a1f7-9ac8453fcd3b"
+       idAd:
+          type: string
+          format: uuid
+          example: "dhe64ks0-3t6s-5620-s6rn-23djr6y85wnf"
+       adStatus:
+          type: string
+          enum: [Prototype, Moderation, Publish, Cancel]   
+        
+    HateoasLink:
+      type: object
+      required: [rel, method, href]
+      properties:
+        rel:
+          type: string
+          description: Тип связи
+          example: self
+        method:
+          type: string
+          enum: [GET, POST, PATCH, DELETE]
+          example: GET
+        href:
+          type: string
+          example: /api/v1/ads/dhe64ks0-3t6s-5620-s6rn-23djr6y85wnf
+        description:
+          type: string
+          maxLength: 200
+          example: Получить объявление
+
+    AsyncOperationResponse:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+          example: "ce7f56fa-19d2-4432-a1f7-9ac8453fcd3b"
+        statusAdLink:
+          example: "/ads/operations/ce7f56fa-19d2-4432-a1f7-9ac8453fcd3b"
+
+    ModerationDecision:
+      type: object
+      required: [decision, reason]
+      properties:
+        decision:
+          type: string
+          enum:
+            - APPROVE
+            - REJECT
+          description: Решение модератора
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 500
+          description: Причина отказа (обязательно при REJECT)
+
+
+  responses:
+    BadRequest:
+      description: Ошибка валидации
+    NotFound:
+      description: Ресурс не найден
+    Locked:
+      description: Ресурс заблокирован
+    Timeout:
+      description: Таймаут
+    TooManyRequests:
+      description: Превышен лимит запросов
