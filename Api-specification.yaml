@@ -99,13 +99,12 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: Idempotency-Key
+        - name: If-Match
           in: header
           required: true
+          description: ETag 
           schema:
             type: string
-            format: uuid
-            example: 8e03978e-40d5-43e8-bc93-6894a57f9324
       requestBody:
         required: true
         content:
@@ -138,48 +137,11 @@ paths:
       responses:
         '202':
           description: Объявление принято в обработку
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AsyncOperationResponse'
         '204':
           description: Удалено
         '423':
           $ref: '#/components/responses/Locked'
-
-  /operations/{operationId}:
-    get:
-      tags:
-        - Работа с объявлениями
-      security:
-      - BearerAuth: [] 
-      summary: Проверить статус задачи
-      description: Проверят статус задачи
-      parameters:
-        - name: operationId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: wait
-          in: query
-          description: Время ожидания в секундах
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 60
-            default: 30
-      responses:
-        '200':
-          description: Операция завершена
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OperationCompleted'
-        '204':
-          description: Операция ещё не завершена
-        '408':
-          $ref: '#/components/responses/Timeout'
+  
 
   /moderation/ads/{idAd}/decision:
     post:
@@ -250,7 +212,7 @@ components:
           maxLength: 500
           example: Курсы английского языка, начиная с уровня А1 и до уровня С2.
 
-    AdTake:
+    AdInfo:
       type: object
       required: [idAd, userId, adCategory, adDescription, adName, adPrice, AdStatus, _links]
       properties:
@@ -321,15 +283,7 @@ components:
               method: DELETE
               href: /api/v1/ads/dhe64ks0-3t6s-5620-s6rn-23djr6y85wnf
               description: Удалить объявление
-        createdAt:
-          type: string
-          format: date-time
-          example: 2023-10-27 15:30:00
-        updatedAt:
-          type: string
-          format: date-time
-          example: 2023-10-27 15:40:00
-
+    
     AdUpdate:
       type: object
       required: [adName, adPrice, adCategory, adDescription]
@@ -354,6 +308,30 @@ components:
           maxLength: 500
           example: Курсы английского языка, начиная с уровня А1 и до уровня С2.
 
+    AdTake:
+      type: object
+      required: [items, countOfReplys, maximumOfReplys, startFrom]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/AdInfo'
+        createdAt:
+          type: string
+          format: date-time
+          example: 2023-10-27 15:30:00
+        updatedAt:
+          type: string
+          format: date-time
+          example: 2023-10-27 15:40:00
+        E-tag:
+          type: string
+          example: 675afc3456789
+        version:
+          type: string
+          example: v1  
+
     AdTakeAll:
       type: object
       required: [items, countOfReplys, maximumOfReplys, startFrom]
@@ -362,7 +340,7 @@ components:
           type: array
           minItems: 1
           items:
-            $ref: '#/components/schemas/AdTake'
+            $ref: '#/components/schemas/AdInfo'
         countOfReplys:
           type: number
           example: 7
@@ -373,22 +351,26 @@ components:
         startFrom:
           type: number
           example: 2
-
-    OperationCompleted:
-      type: object
-      required: [operationId, operationStatus]
-      properties:
-       operationId:
-          type: string
-          format: uuid
-          example: "ce7f56fa-19d2-4432-a1f7-9ac8453fcd3b"
-       idAd:
-          type: string
-          format: uuid
-          example: "dhe64ks0-3t6s-5620-s6rn-23djr6y85wnf"
-       adStatus:
-          type: string
-          enum: [Prototype, Moderation, Publish, Cancel]   
+        _links:
+          type: object
+          description: Навигационные ссылки для постраничного просмотра
+          properties:
+            curr:
+              type: string
+              format: uri
+              description: Текущая страница
+            next:
+              type: string
+              format: uri
+              description: Следующая страница
+            prev:
+              type: string
+              format: uri
+              description: Предыдущая страница
+          example:
+            curr: https://page.com/
+            next: https://page.com/?page=2
+            prev: https://page.com/?page=0
         
     HateoasLink:
       type: object

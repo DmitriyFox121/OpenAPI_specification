@@ -1,0 +1,321 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/your-org/ads-api/main/schemas/schema.json",
+  "title": "Схемы API для управления объявлениями в приложении сервиса услуг",
+  "description": "Набор JSON Schema для валидации запросов и ответов API сервиса услуг.",
+  "type": "object",
+  "properties": {
+    "AdCreate": {
+      "type": "object",
+      "description": "Данные для создания нового объявления.",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Уникальный идентификатор пользователя.",
+          "example": "ce7f56fa-19d2-4432-a1f7-9ac8453fcd3b"
+        },
+        "adName": {
+          "type": "string",
+          "description": "Заголовок объявления.",
+          "minLength": 3,
+          "maxLength": 100,
+          "example": "Английский язык"
+        },
+        "adPrice": {
+          "type": "number",
+          "description": "Цена услуги.",
+          "minimum": 0,
+          "example": 1500
+        },
+        "adCategory": {
+          "type": "string",
+          "description": "Категория услуги.",
+          "minLength": 3,
+          "maxLength": 100,
+          "example": "Иностранные языки"
+        },
+        "adDescription": {
+          "type": "string",
+          "description": "Описание условий и характеристик объявления.",
+          "minLength": 3,
+          "maxLength": 500,
+          "example": "Курсы английского языка от A1 до C2."
+        }
+      },
+      "required": ["userId", "adCategory", "adDescription", "adName", "adPrice"],
+      "additionalProperties": false
+    },
+
+    "AdInfo": {
+      "type": "object",
+      "description": "Полная информация об объявлении.",
+      "properties": {
+        "idAd": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Уникальный идентификатор объявления.",
+          "example": "dhe64ks0-3t6s-5620-s6rn-23djr6y85wnf"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Уникальный идентификатор пользователя."
+        },
+        "userName": {
+          "type": "string",
+          "description": "ФИО пользователя.",
+          "minLength": 3,
+          "maxLength": 100,
+          "example": "Бобров Сергей Викторович"
+        },
+        "userDescription": {
+          "type": "string",
+          "description": "Биография пользователя.",
+          "minLength": 3,
+          "maxLength": 500
+        },
+        "userRating": {
+          "type": "number",
+          "description": "Рейтинг пользователя.",
+          "minimum": 0.1,
+          "maximum": 5,
+          "example": 4.4
+        },
+        "userPFP": {
+          "type": "string",
+          "format": "uri",
+          "description": "Аватар пользователя."
+        },
+        "adName": {
+          "type": "string",
+          "description": "Заголовок объявления."
+        },
+        "adPrice": {
+          "type": "number",
+          "description": "Цена услуги."
+        },
+        "adCategory": {
+          "type": "string",
+          "description": "Категория услуги."
+        },
+        "adDescription": {
+          "type": "string",
+		  "minLength": 3,
+          "maxLength": 1000,
+          "description": "Описание объявления."
+        },
+        "status": {
+          "type": "string",
+          "description": "Статус объявления.",
+          "enum": ["Prototype", "Moderation", "Publish", "Cancel"]
+        },
+        "_links": {
+          "type": "array",
+		  "minItems": 1,
+          "description": "HATEOAS-ссылки.",
+          "items": { "$ref": "#/properties/HateoasLink" 
+		  },
+		  "example": [
+            {
+              "rel": "self",
+              "method": "GET",
+              "href": "/api/v1/ads/dhe64ks0-3t6s-5620-s6rn-23djr6y85wnf",
+              "description": "Получить объявление"
+            },
+            {
+              "rel": "update",
+              "method": "PATCH",
+              "href": "/api/v1/ads/dhe64ks0-3t6s-5620-s6rn-23djr6y85wnf",
+              "description": "Изменить объявление"
+            },
+            {
+              "rel": "delete",
+              "method": "DELETE",
+              "href": "/api/v1/ads/dhe64ks0-3t6s-5620-s6rn-23djr6y85wnf",
+              "description": "Удалить объявление"
+            },
+          ]
+        }
+      },
+      "required": ["idAd", "userId", "adCategory", "adDescription", "adName", "adPrice", "status", "_links"],
+      "additionalProperties": false
+    },
+
+    "AdUpdate": {
+      "type": "object",
+      "description": "Данные для обновления объявления.",
+      "properties": {
+        "adName": { 
+		 "type": "string", 
+		 "minLength": 3, 
+		 "maxLength": 100 
+		},
+        "adPrice": { 
+		 "type": "number", 
+		 "minimum": 0 
+		},
+        "adCategory": { 
+		 "type": "string", 
+		 "minLength": 3, 
+		 "maxLength": 100 
+		},
+        "adDescription": { 
+		 "type": "string", 
+		 "minLength": 3, 
+		 "maxLength": 500 
+		}
+      },
+      "required": ["adName", "adPrice", "adCategory", "adDescription"],
+      "additionalProperties": false
+    },
+
+	"AdTake": {
+	  "type": "object",
+	  "description": "Ответ с полученным объявлением и метаданными ресурса.",
+	  "properties": {
+	    "items": {
+          "type": "array",
+          "description": "Массив с перечнем данных о полученном объявлении.",
+          "minItems": 1,
+          "items": {"$ref": "#/properties/AdInfo"}
+		},
+		"createdAt": {
+		  "type": "string",
+          "format": "date-time",
+		  "description": "Дата и время создания записи.",
+		  "example": "2023-10-27T15:30:00Z"
+		},
+		"updatedAt": {
+		  "type": "string",
+		  "format": "date-time",
+		  "description": "Дата и время последнего изменения записи.",
+		  "example": "2023-10-27T15:40:00Z"
+		},
+		"E-tag": {
+		  "type": "string",
+		  "description": "Уникальный идентификатор версии ресурса.",
+		  "example": "675afc3456789"
+		},
+		"version": {
+          "type": "string",
+		  "description": "Версия ресурса.",
+		  "example": "v1"
+		}
+	  },
+	  "required": ["items", "countOfReplys", "maximumOfReplys", "startFrom"],
+	  "additionalProperties": false
+	},
+
+    "AdTakeAll": {
+      "type": "object",
+      "description": "Ответ со списком объявлений.",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/properties/AdInfo" },
+          "minItems": 1
+        },
+        "countOfReplys": {
+          "type": "number",
+          "description": "Количество полученных записей."
+        },
+        "maximumOfReplys": {
+          "type": "number",
+          "maximum": 15
+        },
+        "startFrom": {
+          "type": "number"
+        }
+		"_links": {
+		  "type": "object",
+		  "description": "Навигационные ссылки для постраничного просмотра.",
+		  "properties": {
+			"curr": {
+			  "type": "string",
+			  "format": "uri",
+			  "description": "Текущая страница."
+			},
+			"next": {
+			  "type": "string",
+			  "format": "uri",
+			  "description": "Следующая страница."
+			},
+			"prev": {
+			  "type": "string",
+			  "format": "uri",
+			  "description": "Предыдущая страница."
+			}
+		},
+		"required": ["curr"],
+		"additionalProperties": false,
+		"example": {
+		  "curr": "https://page.com/",
+          "next": "https://page.com/?page=2",
+          "prev": "https://page.com/?page=0"
+		}
+      }
+    },
+      "required": ["items", "countOfReplys", "maximumOfReplys", "startFrom"],
+      "additionalProperties": false
+    },
+
+    "HateoasLink": {
+      "type": "object",
+      "description": "Описание гиперссылки действия.",
+      "properties": {
+        "rel": { 
+		 "type": "string", 
+		 "example": "self" 
+		},
+        "method": {
+          "type": "string",
+          "enum": ["GET", "POST", "PATCH", "DELETE"]
+        },
+        "href": { 
+		 "type": "string" 
+		},
+        "description": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "required": ["rel", "method", "href"],
+      "additionalProperties": false
+    },
+
+    "AsyncOperationResponse": {
+      "type": "object",
+      "description": "Ответ для асинхронных операций.",
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "statusAdLink": {
+          "type": "string"
+        }
+      },
+      "required": ["operationId", "statusAdLink"],
+      "additionalProperties": false
+    },
+
+    "ModerationDecision": {
+      "type": "object",
+      "description": "Решение модератора по объявлению.",
+      "properties": {
+        "decision": {
+          "type": "string",
+          "enum": ["APPROVE", "REJECT"]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 500
+        }
+      },
+      "required": ["decision", "reason"],
+      "additionalProperties": false
+    }
+  }
+}
