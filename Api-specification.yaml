@@ -42,8 +42,13 @@ paths:
                 $ref: '#/components/schemas/AsyncOperationResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        
 
     get:
       tags:
@@ -52,6 +57,64 @@ paths:
       - BearerAuth: [] 
       summary: Получить список объявлений
       description: Возвращает список объявлений пользователя
+      parameters:
+        - name: category
+          in: query
+          description: Фильтр по категории объявления
+          schema:
+            type: string
+            example: Иностранные языки
+
+        - name: minPrice
+          in: query
+          description: Минимальная цена
+          schema:
+            type: number
+            example: 1000
+
+        - name: maxPrice
+          in: query
+          description: Максимальная цена
+          schema:
+            type: number
+            example: 3000
+
+        - name: search
+          in: query
+          description: Поиск по названию и описанию объявления
+          schema:
+            type: string
+            example: английский
+
+        - name: sort
+          in: query
+          description: Поле сортировки
+          schema:
+            type: string
+            enum: [price, createdAt]
+            example: price
+
+        - name: order
+          in: query
+          description: Направление сортировки
+          schema:
+            type: string
+            enum: [asc, desc]
+            example: asc
+
+        - name: limit
+          in: query
+          description: Количество элементов на странице
+          schema:
+            type: number
+            example: 10
+
+        - name: offset
+          in: query
+          description: Смещение для пагинации
+          schema:
+            type: integer
+            example: 0
       responses:
         '200':
           description: OK
@@ -59,6 +122,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdTakeAll'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /ads/{idAd}:
     get:
@@ -78,12 +149,24 @@ paths:
       responses:
         '200':
           description: OK
+          headers:
+            ETag:
+              description: Версия ресурса
+              schema:
+                type: string
+                example: "\"v1.675afc\""
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdTake'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
     patch:
       tags:
@@ -114,12 +197,28 @@ paths:
       responses:
         '200':
           description: OK
+          headers:
+            ETag:
+              description: Новая версия ресурса после изменения
+              schema:
+                type: string
+                example: "\"v2.89ab12\""
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdTake'
-        '423':
-          $ref: '#/components/responses/Locked'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
     delete:
       tags:
@@ -135,12 +234,18 @@ paths:
             type: string
             format: uuid
       responses:
-        '202':
-          description: Объявление принято в обработку
         '204':
           description: Удалено
-        '423':
-          $ref: '#/components/responses/Locked'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   
 
   /moderation/ads/{idAd}/decision:
@@ -174,6 +279,18 @@ paths:
       responses:
         '200':
           description: Выполнено
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
 components:
 
@@ -186,87 +303,106 @@ components:
   schemas:
     AdCreate:
       type: object
+      description: Данные для создания нового объявления.
       required: [userId, adCategory, adDescription, adName, adPrice]
       properties:
         userId:
           type: string
+          description: Уникальный идентификатор пользователя
           format: uuid
           example: "ce7f56fa-19d2-4432-a1f7-9ac8453fcd3b"
         adName:
           type: string
+          description: Заголовок объявления
           minLength: 3
           maxLength: 100
           example: "Анлийский язык"
         adPrice:
           type: number
+          description: Цена услуги
           minimum: 0
           example: 1500
         adCategory:
           type: string
+          description: Категория услуги
           minLength: 3
           maxLength: 100
           example: Иностраные языки
         adDescription:
           type: string
+          description: Описание условий и характеристик объявления
           minLength: 3
           maxLength: 500
           example: Курсы английского языка, начиная с уровня А1 и до уровня С2.
 
     AdInfo:
       type: object
+      description: Полная информация об объявлении
       required: [idAd, userId, adCategory, adDescription, adName, adPrice, AdStatus, _links]
       properties:
         idAd:
           type: string
+          description: Уникальный идентификатор объявления
           format: uuid
           example: "dhe64ks0-3t6s-5620-s6rn-23djr6y85wnf"
         userId:
           type: string
+          description: Уникальный идентификатор пользователя
           format: uuid
           example: "ce7f56fa-19d2-4432-a1f7-9ac8453fcd3b"
         userName:
           type: string
+          description: ФИО пользователя
           minLength: 3
           maxLength: 100
           example: "Бобров Сергей Викторович"
         userDescription:
           type: string
+          description: Биография пользователя
           minLength: 3
           maxLength: 500
           example: "Преподаю английский язык для школьников и студентов."
         userRating:
           type: number
+          description: Рейтинг пользователя
           minimum: 0.1
           maximum: 5
           example: 4.4
         userPFP:
           type: string
+          description: Аватар пользователя
           format: uri
           example: https://cdn.example.com/users/ce7f56fa/avatar.jpg
         adName:
           type: string
+          description: Заголовок объявления
           minLength: 3
           maxLength: 100
           example: "Анлийский язык"
         adPrice:
           type: number
+          description: Цена услуги
           minimum: 0
           example: 1500
         adCategory:
           type: string
+          description: Категория услуги
           minLength: 3
           maxLength: 100
           example: Иностраные языки
         adDescription:
           type: string
+          description: Описание объявления
           minLength: 3
           maxLength: 500
           example: Курсы английского языка, начиная с уровня А1 и до уровня С2.
         status:
           type: string
+          description: Статус объявления
           enum: [Prototype, Moderation, Publish, Cancel]
         _links:
           type: array
+          description: HATEOAS-ссылки
           minItems: 1
           items:
             $ref: '#/components/schemas/HateoasLink'
@@ -286,70 +422,86 @@ components:
     
     AdUpdate:
       type: object
+      description: Данные для обновления объявления
       required: [adName, adPrice, adCategory, adDescription]
       properties:
         adName:
           type: string
+          description: Заголовок объявления
           minLength: 3
           maxLength: 100
           example: "Анлийский язык"
         adPrice:
           type: number
+          description: Цена услуги
           minimum: 0
           example: 1500
         adCategory:
           type: string
+          description: Категория услуги
           minLength: 3
           maxLength: 100
           example: Иностраные языки
         adDescription:
           type: string
+          description: Описание объявления
           minLength: 3
           maxLength: 500
           example: Курсы английского языка, начиная с уровня А1 и до уровня С2.
 
     AdTake:
       type: object
+      description: Ответ с полученным объявлением и метаданными ресурса
       required: [items, countOfReplys, maximumOfReplys, startFrom]
       properties:
         items:
           type: array
+          description: Массив с перечнем данных о полученном объявлении
           minItems: 1
           items:
             $ref: '#/components/schemas/AdInfo'
         createdAt:
           type: string
+          description: Дата и время создания записи
           format: date-time
           example: 2023-10-27 15:30:00
         updatedAt:
           type: string
+          description: Дата и время последнего изменения записи
           format: date-time
           example: 2023-10-27 15:40:00
-        E-tag:
+        _etag:
           type: string
-          example: 675afc3456789
-        version:
+          description: Уникальный идентификатор версии ресурса
+          example: "\"v1.675afc\""
+        _version:
           type: string
+          description: Версия ресурса
           example: v1  
 
     AdTakeAll:
       type: object
+      description: Ответ со списком объявлений
       required: [items, countOfReplys, maximumOfReplys, startFrom]
       properties:
         items:
           type: array
+          description: 
           minItems: 1
           items:
             $ref: '#/components/schemas/AdInfo'
         countOfReplys:
           type: number
+          description: Количество полученных записей
           example: 7
         maximumOfReplys:
           type: number
+          description: Максимальное допустопие количество  записей для получения
           maximum: 15
           example: 15
         startFrom:
           type: number
+          description: Позиция получения записей
           example: 2
         _links:
           type: object
@@ -374,6 +526,7 @@ components:
         
     HateoasLink:
       type: object
+      description: Описание гиперссылки действия
       required: [rel, method, href]
       properties:
         rel:
@@ -394,16 +547,20 @@ components:
 
     AsyncOperationResponse:
       type: object
+      description: Ответ для асинхронных операций
       properties:
         operationId:
           type: string
+          description: Уникальный идентификатор асинхронной операции
           format: uuid
           example: "ce7f56fa-19d2-4432-a1f7-9ac8453fcd3b"
         statusAdLink:
+          description: Ссылка на статус асинхронной операции
           example: "/ads/operations/ce7f56fa-19d2-4432-a1f7-9ac8453fcd3b"
 
     ModerationDecision:
       type: object
+      description: Решение модератора по объявлению
       required: [decision, reason]
       properties:
         decision:
@@ -424,9 +581,13 @@ components:
       description: Ошибка валидации
     NotFound:
       description: Ресурс не найден
-    Locked:
+    PreconditionFailed:
       description: Ресурс заблокирован
     Timeout:
       description: Таймаут
     TooManyRequests:
       description: Превышен лимит запросов
+    Conflict:
+      description: Конфликт состсояний ресурса
+    InternalServerError:
+      description: Внутрення ошибка сервера
